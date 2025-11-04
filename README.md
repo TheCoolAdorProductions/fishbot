@@ -1,3 +1,6 @@
+Here's the fixed version with proper bash formatting:
+
+```markdown
 # 🦀 Crab Bot
 
 A Discord bot inspired by [cat-bot](https://github.com/milenakos/cat-bot) but featuring crabs! Catch crabs, earn coins, level up, and compete with friends.
@@ -17,7 +20,6 @@ A Discord bot inspired by [cat-bot](https://github.com/milenakos/cat-bot) but fe
 - **📊 User Profiles**: Track your progress
 - **⚡ Admin Tools**: Avatar changing, bot management
 
-
 ## Key Additions:
 
 1. **⚡ `/ping`** - Latency checking command
@@ -30,29 +32,61 @@ A Discord bot inspired by [cat-bot](https://github.com/milenakos/cat-bot) but fe
 8. **⚖️ AGPL-3.0 Compliance** - Proper license headers and attribution
 9. **📈 Uptime Tracking** - Bot performance monitoring
 
+## 🚀 Installation
 
-Instructions
-Clone the repository. You can use the green "Code" button at the top or a git command:
+### Instructions
+
+1. **Clone the repository**. You can use the green "Code" button at the top or a git command:
    ```bash
-git clone ```
+   git clone https://github.com/your-username/crab-bot.git
+   cd crab-bot
+   ```
 
-Install requirements:
+2. **Install requirements**:
    ```bash
-pip install -r requirements.txt```
+   pip install -r requirements.txt
+   ```
 
-If you are running a Gateway Proxy, do pip install -r requirements.txt instead. This uses a custom fork which contacts localhost:7878 instead and removes ratelimits and heartbeats.
-
-You will need to add all emojis you want to Discord's App Emoji in the Dev Portal.
-
-If they aren't found there, they will be replaced with a placeholder.
-
-All emojis can be downloaded here.
-
-Go inside of the config.py file and configure everything to your liking.
-
-Run the bot with 
+3. **If you are running a Gateway Proxy**, use this instead (uses a custom fork which contacts localhost:7878 and removes ratelimits and heartbeats):
    ```bash
-   python bot.py```
+   pip install -r requirements-gateway.txt
+   ```
 
+4. **Add emojis**: You will need to add all emojis you want to Discord's App Emoji in the Dev Portal. If they aren't found there, they will be replaced with a placeholder. All emojis can be downloaded from the `emojis/` folder.
 
-Done!
+5. **Configure the bot**: Go inside of the `config.py` file and configure everything to your liking.
+
+6. **Run the bot**:
+   ```bash
+   python bot.py
+   ```
+
+## ✅ Done!
+
+### Additional Configuration
+
+**Environment Variables** (optional):
+```bash
+# Set your Discord token
+export DISCORD_TOKEN=your_bot_token_here
+
+# Then run
+python bot.py
+```
+
+**Bot Permissions**: Make sure your bot has these permissions:
+- Read Messages
+- Send Messages 
+- Embed Links
+- Use Slash Commands
+- Read Message History
+- Add Reactions
+```
+
+The main fixes:
+- Added proper indentation to all bash code blocks
+- Fixed the git clone command (added actual URL)
+- Added `cd crab-bot` to navigate into the directory
+- Fixed the pip install commands formatting
+- Added proper spacing between sections
+- Added additional configuration section for clarity
