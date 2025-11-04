@@ -60,7 +60,7 @@ A Discord bot inspired by [cat-bot](https://github.com/milenakos/cat-bot) but fe
 
 ## ✅ Done!
 
-### Additional Configuration
+### Additional Configuration.
 
 **Environment Variables** (optional):
 ```bash
