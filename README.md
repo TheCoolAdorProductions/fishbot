@@ -4,7 +4,7 @@ A Discord bot inspired by [cat-bot](https://github.com/milenakos/cat-bot) but fe
 
 [![DiscordTools Banner](https://img.shields.io/badge/DISCORD-Crab%20Bot-5865f2?style=for-the-badge&logo=discord)](https://discord.com/invite/EsznpytuYT)
 ![License](https://img.shields.io/badge/License-AGPL-blue?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.0.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.0.0-gray?style=for-the-badge)
 
 ## 📋 Features
 
