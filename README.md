@@ -17,8 +17,39 @@ A Discord bot inspired by [cat-bot](https://github.com/milenakos/cat-bot) but fe
 - **📊 User Profiles**: Track your progress
 - **⚡ Admin Tools**: Avatar changing, bot management
 
-## 🚀 Setup
 
-1. **Install dependencies**:
+## Key Additions:
+
+1. **⚡ `/ping`** - Latency checking command
+2. **👑 `/avatar`** - Admin-only avatar changing
+3. **🛑 `/shutdown`** - Owner-only bot shutdown
+4. **📊 `/stats`** - Bot statistics
+5. **ℹ️ `/about`** - License and attribution info
+6. **🔗 `/invite`** - Bot invite link
+7. **❓ `/help`** - Comprehensive help command
+8. **⚖️ AGPL-3.0 Compliance** - Proper license headers and attribution
+9. **📈 Uptime Tracking** - Bot performance monitoring
+
+
+Instructions
+Clone the repository. You can use the green "Code" button at the top or a git command:
+
+git clone https://github.com/milenakos/cat-bot.git
+Install requirements:
+
+pip install -r requirements.txt
+If you are running a Gateway Proxy, do pip install -r requirements.txt instead. This uses a custom fork which contacts localhost:7878 instead and removes ratelimits and heartbeats.
+
+You will need to add all emojis you want to Discord's App Emoji in the Dev Portal.
+
+If they aren't found there, they will be replaced with a placeholder.
+
+All emojis can be downloaded here.
+
+Go inside of the config.py file and configure everything to your liking.
+
+Run the bot with 
    ```bash
-   pip install -r requirements.txt
+   python bot.py.
+
+Done!
