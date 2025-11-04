@@ -79,11 +79,3 @@ python bot.py
 - Read Message History
 - Add Reactions
 
-The main fixes:
-- Added proper indentation to all bash code blocks
-- Fixed the git clone command (added actual URL)
-- Added `cd crab-bot` to navigate into the directory
-- Fixed the pip install commands formatting
-- Added proper spacing between sections
-- Added additional configuration section for clarity
-
