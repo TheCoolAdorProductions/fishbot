@@ -1,6 +1,3 @@
-Here's the fixed version with proper bash formatting:
-
-```markdown
 # 🦀 Crab Bot
 
 A Discord bot inspired by [cat-bot](https://github.com/milenakos/cat-bot) but featuring crabs! Catch crabs, earn coins, level up, and compete with friends.
