@@ -1,12 +1,18 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ActivityType, REST, Routes, Collection } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ActivityType, REST, Routes } = require('discord.js');
+
+// Config imports
+const crabFacts = require('./config/crabFacts');
+const shopItems = require('./config/shopItems');
+const messages = require('./config/messages');
+
+// Utility imports
+const dataHandler = require('./utils/dataHandler');
+const crabSpawner = require('./utils/crabSpawner');
 
 // Bot configuration
 const config = {
-    prefix: '!',
     token: process.env.TOKEN,
-    ownerId: process.env.OWNER_ID || 'YOUR_USER_ID_HERE'
+    ownerId: process.env.OWNER_ID
 };
 
 if (!config.token) {
@@ -25,10 +31,7 @@ const client = new Client({
     ]
 });
 
-// Slash commands collection
-client.commands = new Collection();
-
-// Define slash commands
+// Slash commands
 const slashCommands = [
     {
         name: 'help',
@@ -41,14 +44,12 @@ const slashCommands = [
     {
         name: 'profile',
         description: 'Check your crab profile',
-        options: [
-            {
-                name: 'user',
-                description: 'The user to check profile of',
-                type: 6, // USER type
-                required: false
-            }
-        ]
+        options: [{
+            name: 'user',
+            description: 'The user to check profile of',
+            type: 6,
+            required: false
+        }]
     },
     {
         name: 'shop',
@@ -57,25 +58,24 @@ const slashCommands = [
     {
         name: 'buy',
         description: 'Buy an item from the shop',
-        options: [
-            {
-                name: 'item',
-                description: 'The item you want to buy',
-                type: 3, // STRING type
-                required: true,
-                choices: [
-                    { name: '🦀 Rare Crab', value: 'rare crab' },
-                    { name: '🏠 Crab House', value: 'crab house' },
-                    { name: '🎣 Golden Net', value: 'golden net' },
-                    { name: '👑 Crab Crown', value: 'crab crown' },
-                    { name: '💎 Crystal Crab', value: 'crystal crab' }
-                ]
-            }
-        ]
+        options: [{
+            name: 'item',
+            description: 'The item you want to buy',
+            type: 3,
+            required: true,
+            choices: Object.keys(shopItems).map(item => ({
+                name: item,
+                value: item
+            }))
+        }]
     },
     {
         name: 'inventory',
         description: 'Check your inventory'
+    },
+    {
+        name: 'collection',
+        description: 'Check your crab collection'
     },
     {
         name: 'leaderboard',
@@ -84,26 +84,48 @@ const slashCommands = [
     {
         name: 'setup',
         description: 'Set up crab bot in this server',
-        options: [
-            {
-                name: 'channel',
-                description: 'Channel where crabs will appear',
-                type: 7, // CHANNEL type
-                required: true
-            }
-        ]
+        options: [{
+            name: 'channel',
+            description: 'Channel where crabs will appear',
+            type: 7,
+            required: true
+        }]
     },
     {
         name: 'prefix',
         description: 'Change the bot prefix for this server',
-        options: [
-            {
-                name: 'new_prefix',
-                description: 'The new prefix (1-3 characters)',
-                type: 3, // STRING type
-                required: true
-            }
-        ]
+        options: [{
+            name: 'new_prefix',
+            description: 'The new prefix (up to 5 characters)',
+            type: 3,
+            required: true
+        }]
+    },
+    {
+        name: 'frequency',
+        description: 'Change crab spawn frequency',
+        options: [{
+            name: 'minutes',
+            description: 'Minutes between crab spawns (5-60)',
+            type: 4,
+            required: true,
+            min_value: 5,
+            max_value: 60
+        }]
+    },
+    {
+        name: 'claimmessage',
+        description: 'Set custom catch message',
+        options: [{
+            name: 'message',
+            description: 'Custom message when someone catches a crab',
+            type: 3,
+            required: true
+        }]
+    },
+    {
+        name: 'crabinfo',
+        description: 'Get random crab facts'
     },
     {
         name: 'ping',
@@ -115,137 +137,12 @@ const slashCommands = [
     }
 ];
 
-// Register commands to collection
-slashCommands.forEach(command => {
-    client.commands.set(command.name, command);
-});
-
-// Data storage and other existing code remains the same...
-const dataDir = './data';
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir);
-}
-
-function loadJSON(filename, defaultData = {}) {
-    try {
-        return JSON.parse(fs.readFileSync(path.join(dataDir, filename), 'utf8'));
-    } catch {
-        return defaultData;
-    }
-}
-
-function saveJSON(filename, data) {
-    fs.writeFileSync(path.join(dataDir, filename), JSON.stringify(data, null, 2));
-}
-
-let guildData = loadJSON('guilds.json', {});
-let userData = loadJSON('users.json', {});
-let serverConfigs = loadJSON('server_configs.json', {});
-
-const CRAB_IMAGES = [
-    "https://media.istockphoto.com/id/544453032/photo/crab-close-up-cuba.jpg",
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Sally_Lightfoot_Crab_2019.jpg/1200px-Sally_Lightfoot_Crab_2019.jpg",
-    "https://plus.unsplash.com/premium_photo-1667864262393-b5319164c532",
-    "https://images.unsplash.com/photo-1580841129862-bc2a2d113c45",
-    "https://images.unsplash.com/photo-1527681192512-bca34fd580bb"
-];
-
-const APPEARANCE_MESSAGES = [
-    "🦀 A crab just scuttled into the server! Click the button to catch it!",
-    "🦀 Look! A crab appeared! Quick, catch it!",
-    "🦀 Crab alert! A crab has been spotted!",
-    "🦀 Pinch, pinch! A crab is here! Catch it before it runs away!",
-    "🦀 Sideways walking friend appeared! Catch it!"
-];
-
-const activeCrabs = new Map();
-
-function spawnCrab(guildId, channelId) {
-    const crabId = `crab_${guildId}_${Date.now()}`;
-    const crab = {
-        id: crabId,
-        guildId,
-        channelId,
-        spawnTime: Date.now(),
-        caught: false,
-        value: Math.floor(Math.random() * 15) + 5
-    };
-    
-    activeCrabs.set(crabId, crab);
-    
-    setTimeout(() => {
-        if (activeCrabs.has(crabId) && !activeCrabs.get(crabId).caught) {
-            activeCrabs.delete(crabId);
-        }
-    }, 5 * 60 * 1000);
-    
-    return crab;
-}
-
-function getUserData(userId) {
-    const id = userId.toString();
-    if (!userData[id]) {
-        userData[id] = {
-            crabs: 0,
-            coins: 0,
-            level: 1,
-            xp: 0,
-            inventory: [],
-            totalCaught: 0
-        };
-        saveJSON('users.json', userData);
-    }
-    return userData[id];
-}
-
-function saveUserData(userId, data) {
-    userData[userId.toString()] = data;
-    saveJSON('users.json', userData);
-}
-
-function addCatch(userId, coins = 0, xp = 0) {
-    const user = getUserData(userId);
-    user.crabs++;
-    user.totalCaught++;
-    user.coins += coins;
-    user.xp += xp;
-    
-    const xpNeeded = user.level * 100;
-    if (user.xp >= xpNeeded) {
-        user.level++;
-        user.xp = 0;
-        saveUserData(userId, user);
-        return { user, leveledUp: true };
-    }
-    
-    saveUserData(userId, user);
-    return { user, leveledUp: false };
-}
-
-function getServerConfig(guildId) {
-    const id = guildId.toString();
-    if (!serverConfigs[id]) {
-        serverConfigs[id] = {
-            prefix: '!',
-            crabChannel: null,
-            enabled: false
-        };
-        saveJSON('server_configs.json', serverConfigs);
-    }
-    return serverConfigs[id];
-}
-
-function saveServerConfig(guildId, config) {
-    serverConfigs[guildId.toString()] = config;
-    saveJSON('server_configs.json', serverConfigs);
-}
-
-// Register slash commands on startup
+// Bot ready event
 client.once('ready', async () => {
     console.log(`🦀 ${client.user.tag} is ready!`);
     console.log(`🦀 Serving ${client.guilds.cache.size} servers`);
     
-    // Register slash commands globally
+    // Register slash commands
     try {
         const rest = new REST({ version: '10' }).setToken(config.token);
         console.log('🦀 Registering slash commands...');
@@ -262,25 +159,31 @@ client.once('ready', async () => {
     
     client.user.setActivity('for crabs 🦀', { type: ActivityType.Watching });
     
+    // Start crab spawning intervals for each server
     setInterval(() => {
-        for (const [guildId, config] of Object.entries(serverConfigs)) {
-            if (config.enabled && config.crabChannel) {
-                const channel = client.channels.cache.get(config.crabChannel);
+        for (const guild of client.guilds.cache.values()) {
+            const serverConfig = dataHandler.getServerConfig(guild.id);
+            if (serverConfig.enabled && serverConfig.crabChannel) {
+                const channel = client.channels.cache.get(serverConfig.crabChannel);
                 if (channel && Math.random() < 0.7) {
-                    const crab = spawnCrab(guildId, config.crabChannel);
+                    const crab = crabSpawner.spawnCrab(guild.id, serverConfig.crabChannel);
                     sendCrabAppearance(channel, crab);
                 }
             }
         }
-    }, 10 * 60 * 1000);
+    }, 60000); // Check every minute
 });
 
 async function sendCrabAppearance(channel, crab) {
     const embed = new EmbedBuilder()
         .setTitle('🦀 A Crab Appeared!')
-        .setDescription(APPEARANCE_MESSAGES[Math.floor(Math.random() * APPEARANCE_MESSAGES.length)])
-        .setImage(CRAB_IMAGES[Math.floor(Math.random() * CRAB_IMAGES.length)])
+        .setDescription(crabSpawner.getRandomAppearanceMessage())
+        .setImage(crab.image)
         .setColor(0xFF6B6B)
+        .addFields(
+            { name: 'Crab Type', value: crab.type, inline: true },
+            { name: 'Rarity', value: crab.rarity.toUpperCase(), inline: true }
+        )
         .setFooter({ text: 'Click the button below to catch it!' });
 
     const row = new ActionRowBuilder()
@@ -294,7 +197,7 @@ async function sendCrabAppearance(channel, crab) {
     await channel.send({ embeds: [embed], components: [row] });
 }
 
-// Handle slash commands
+// Handle interactions
 client.on('interactionCreate', async interaction => {
     if (interaction.isChatInputCommand()) {
         await handleSlashCommand(interaction);
@@ -303,44 +206,27 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
+// Slash command handlers
 async function handleSlashCommand(interaction) {
     const { commandName, options } = interaction;
     
     try {
         switch (commandName) {
-            case 'help':
-                await slashHelp(interaction);
-                break;
-            case 'crab':
-                await slashCrab(interaction);
-                break;
-            case 'profile':
-                await slashProfile(interaction, options);
-                break;
-            case 'shop':
-                await slashShop(interaction);
-                break;
-            case 'buy':
-                await slashBuy(interaction, options);
-                break;
-            case 'inventory':
-                await slashInventory(interaction);
-                break;
-            case 'leaderboard':
-                await slashLeaderboard(interaction);
-                break;
-            case 'setup':
-                await slashSetup(interaction, options);
-                break;
-            case 'prefix':
-                await slashPrefix(interaction, options);
-                break;
-            case 'ping':
-                await slashPing(interaction);
-                break;
-            case 'about':
-                await slashAbout(interaction);
-                break;
+            case 'help': await slashHelp(interaction); break;
+            case 'crab': await slashCrab(interaction); break;
+            case 'profile': await slashProfile(interaction, options); break;
+            case 'shop': await slashShop(interaction); break;
+            case 'buy': await slashBuy(interaction, options); break;
+            case 'inventory': await slashInventory(interaction); break;
+            case 'collection': await slashCollection(interaction); break;
+            case 'leaderboard': await slashLeaderboard(interaction); break;
+            case 'setup': await slashSetup(interaction, options); break;
+            case 'prefix': await slashPrefix(interaction, options); break;
+            case 'frequency': await slashFrequency(interaction, options); break;
+            case 'claimmessage': await slashClaimMessage(interaction, options); break;
+            case 'crabinfo': await slashCrabInfo(interaction); break;
+            case 'ping': await slashPing(interaction); break;
+            case 'about': await slashAbout(interaction); break;
         }
     } catch (error) {
         console.error('Slash command error:', error);
@@ -348,51 +234,42 @@ async function handleSlashCommand(interaction) {
     }
 }
 
-// Slash command implementations
+// Implement all slash command functions...
 async function slashHelp(interaction) {
-    const serverConfig = getServerConfig(interaction.guild.id);
-    const prefix = serverConfig.prefix;
+    const serverConfig = dataHandler.getServerConfig(interaction.guild.id);
     
     const embed = new EmbedBuilder()
         .setTitle('🦀 Crab Bot Help')
-        .setDescription(`**Server:** ${interaction.guild.name}\n**Prefix:** \`${prefix}\``)
+        .setDescription(`**Server:** ${interaction.guild.name}\n**Prefix:** \`${serverConfig.prefix}\``)
         .setColor(0x7289DA)
         .addFields(
-            { 
-                name: '🔧 Slash Commands', 
-                value: 'Use `/` for all commands!\n`/setup`, `/crab`, `/shop`, `/profile`, etc.',
-                inline: false 
-            },
-            { 
-                name: '⚙️ Server Commands', 
-                value: `\`/setup #channel\` - Set up crab channel (Admin)\n\`/prefix <new>\` - Change prefix (Admin)`,
-                inline: true 
-            },
-            { 
-                name: '🎮 Core Commands', 
-                value: '`/crab` - Get crab image\n`/profile` - Check profile\n`/shop` - Browse shop\n`/buy` - Buy items\n`/inventory` - Check inventory\n`/leaderboard` - View leaderboard',
-                inline: true 
-            }
-        )
-        .setFooter({ text: 'Inspired by cat-bot | AGPL-3.0 License' });
+            { name: '⚙️ Server Commands', value: '`/setup` - Set crab channel\n`/prefix` - Change prefix\n`/frequency` - Set spawn rate\n`/claimmessage` - Custom catch message', inline: false },
+            { name: '🎮 Core Commands', value: '`/crab` - Get crab image\n`/profile` - Check profile\n`/shop` - Browse shop\n`/buy` - Buy items\n`/inventory` - Check inventory\n`/collection` - Crab collection', inline: true },
+            { name: 'ℹ️ Info Commands', value: '`/leaderboard` - Rankings\n`/crabinfo` - Crab facts\n`/ping` - Latency\n`/about` - Bot info', inline: true }
+        );
     
     await interaction.reply({ embeds: [embed] });
 }
 
 async function slashCrab(interaction) {
+    const crabTypes = require('./config/crabTypes');
+    const randomCrab = crabTypes[Math.floor(Math.random() * crabTypes.length)];
+    
     const embed = new EmbedBuilder()
-        .setTitle('🦀 Crab!')
-        .setImage(CRAB_IMAGES[Math.floor(Math.random() * CRAB_IMAGES.length)])
+        .setTitle(`🦀 ${randomCrab.name}`)
+        .setImage(randomCrab.image)
         .setColor(0xFF6B6B)
-        .setFooter({ text: 'Use /help for all commands' });
+        .addFields(
+            { name: 'Rarity', value: randomCrab.rarity.toUpperCase(), inline: true }
+        );
     
     await interaction.reply({ embeds: [embed] });
 }
 
 async function slashProfile(interaction, options) {
     const target = options.getUser('user') || interaction.user;
-    const user = getUserData(target.id);
-    const serverConfig = getServerConfig(interaction.guild.id);
+    const user = dataHandler.getUserData(target.id);
+    const serverConfig = dataHandler.getServerConfig(interaction.guild.id);
     
     const embed = new EmbedBuilder()
         .setTitle(`🦀 ${target.displayName}'s Crab Profile`)
@@ -401,10 +278,10 @@ async function slashProfile(interaction, options) {
         .addFields(
             { name: '📊 Level', value: user.level.toString(), inline: true },
             { name: '⭐ XP', value: `${user.xp}/${user.level * 100}`, inline: true },
-            { name: '🦀 Crabs Caught', value: user.totalCaught.toString(), inline: true },
+            { name: '🦀 Total Caught', value: user.totalCaught.toString(), inline: true },
             { name: '🪙 Crab Coins', value: user.coins.toString(), inline: true },
             { name: '🎒 Inventory', value: `${user.inventory.length} items`, inline: true },
-            { name: '🔤 Server Prefix', value: serverConfig.prefix, inline: true }
+            { name: '🔤 Prefix', value: serverConfig.prefix, inline: true }
         );
     
     await interaction.reply({ embeds: [embed] });
@@ -414,56 +291,52 @@ async function slashShop(interaction) {
     const embed = new EmbedBuilder()
         .setTitle('🦀 Crab Shop')
         .setDescription('Spend your Crab Coins here!')
-        .setColor(0xFFD700)
-        .addFields(
-            { name: '🦀 Rare Crab', value: 'A special rare crab for your collection - 50 coins', inline: false },
-            { name: '🏠 Crab House', value: 'A cozy home for your crabs - 100 coins', inline: false },
-            { name: '🎣 Golden Net', value: 'Increases catch chance - 200 coins', inline: false },
-            { name: '👑 Crab Crown', value: 'Become the crab king/queen - 500 coins', inline: false },
-            { name: '💎 Crystal Crab', value: 'Legendary shiny crab - 1000 coins', inline: false }
-        )
-        .setFooter({ text: 'Use /buy [item] to purchase items' });
+        .setColor(0xFFD700);
+    
+    for (const [item, details] of Object.entries(shopItems)) {
+        embed.addFields({
+            name: `${item} - ${details.price} coins`,
+            value: details.description,
+            inline: false
+        });
+    }
     
     await interaction.reply({ embeds: [embed] });
 }
 
 async function slashBuy(interaction, options) {
     const item = options.getString('item');
-    const user = getUserData(interaction.user.id);
+    const user = dataHandler.getUserData(interaction.user.id);
+    const itemDetails = shopItems[item];
     
-    const prices = {
-        'rare crab': 50,
-        'crab house': 100,
-        'golden net': 200,
-        'crab crown': 500,
-        'crystal crab': 1000
-    };
-    
-    const price = prices[item];
-    
-    if (user.coins < price) {
-        await interaction.reply({ content: `🦀 You need ${price} Crab Coins to buy that! You have ${user.coins}.`, ephemeral: true });
+    if (!itemDetails) {
+        await interaction.reply({ content: '🦀 That item doesn\'t exist!', ephemeral: true });
         return;
     }
     
-    user.coins -= price;
+    if (user.coins < itemDetails.price) {
+        await interaction.reply({ content: `🦀 You need ${itemDetails.price} coins! You have ${user.coins}.`, ephemeral: true });
+        return;
+    }
+    
+    user.coins -= itemDetails.price;
     user.inventory.push(item);
-    saveUserData(interaction.user.id, user);
+    dataHandler.saveUserData(interaction.user.id, user);
     
     const embed = new EmbedBuilder()
         .setTitle('🦀 Purchase Successful!')
-        .setDescription(`You bought **${item}** for ${price} Crab Coins!`)
+        .setDescription(`You bought **${item}** for ${itemDetails.price} coins!`)
         .setColor(0x00FF00)
-        .setFooter({ text: `You have ${user.coins} Crab Coins remaining` });
+        .setFooter({ text: `You have ${user.coins} coins remaining` });
     
     await interaction.reply({ embeds: [embed] });
 }
 
 async function slashInventory(interaction) {
-    const user = getUserData(interaction.user.id);
+    const user = dataHandler.getUserData(interaction.user.id);
     
     if (!user.inventory.length) {
-        await interaction.reply({ content: '🦀 Your inventory is empty! Catch some crabs and buy items from the shop.', ephemeral: true });
+        await interaction.reply({ content: '🦀 Your inventory is empty!', ephemeral: true });
         return;
     }
     
@@ -478,7 +351,7 @@ async function slashInventory(interaction) {
     
     for (const [item, count] of Object.entries(itemCounts)) {
         embed.addFields({ 
-            name: item.charAt(0).toUpperCase() + item.slice(1), 
+            name: item, 
             value: `Quantity: ${count}`, 
             inline: true 
         });
@@ -487,8 +360,32 @@ async function slashInventory(interaction) {
     await interaction.reply({ embeds: [embed] });
 }
 
+async function slashCollection(interaction) {
+    const user = dataHandler.getUserData(interaction.user.id);
+    
+    if (!Object.keys(user.crabCollection).length) {
+        await interaction.reply({ content: '🦀 You haven\'t caught any crabs yet!', ephemeral: true });
+        return;
+    }
+    
+    const embed = new EmbedBuilder()
+        .setTitle('📚 Crab Collection')
+        .setColor(0x4FC3F7);
+    
+    for (const [crabType, count] of Object.entries(user.crabCollection)) {
+        embed.addFields({ 
+            name: crabType, 
+            value: `Caught: ${count}`, 
+            inline: true 
+        });
+    }
+    
+    await interaction.reply({ embeds: [embed] });
+}
+
 async function slashLeaderboard(interaction) {
-    const topUsers = Object.entries(userData)
+    const allUsers = dataHandler.getAllUsers();
+    const topUsers = Object.entries(allUsers)
         .filter(([_, data]) => data.totalCaught > 0)
         .sort((a, b) => b[1].totalCaught - a[1].totalCaught)
         .slice(0, 10);
@@ -498,7 +395,7 @@ async function slashLeaderboard(interaction) {
         .setColor(0xFFD700);
     
     if (!topUsers.length) {
-        embed.setDescription('No crabs caught yet! Be the first to catch one!');
+        embed.setDescription('No crabs caught yet!');
     } else {
         for (let i = 0; i < topUsers.length; i++) {
             const [userId, data] = topUsers[i];
@@ -510,9 +407,7 @@ async function slashLeaderboard(interaction) {
                     value: `🦀 ${data.totalCaught} crabs | ⭐ Lvl ${data.level}`,
                     inline: false
                 });
-            } catch {
-                // Skip if user not found
-            }
+            } catch {}
         }
     }
     
@@ -521,52 +416,98 @@ async function slashLeaderboard(interaction) {
 
 async function slashSetup(interaction, options) {
     if (!interaction.memberPermissions.has('Administrator')) {
-        await interaction.reply({ content: '🦀 You need **Administrator** permissions to set up the bot.', ephemeral: true });
+        await interaction.reply({ content: '🦀 Administrator permissions required!', ephemeral: true });
         return;
     }
     
     const channel = options.getChannel('channel');
-    const serverConfig = getServerConfig(interaction.guild.id);
+    const serverConfig = dataHandler.getServerConfig(interaction.guild.id);
     serverConfig.crabChannel = channel.id;
     serverConfig.enabled = true;
-    saveServerConfig(interaction.guild.id, serverConfig);
+    dataHandler.saveServerConfig(interaction.guild.id, serverConfig);
     
     const embed = new EmbedBuilder()
-        .setTitle('🦀 Crab Bot Setup Complete!')
-        .setDescription(`Crab appearances enabled in ${channel}`)
+        .setTitle('🦀 Setup Complete!')
+        .setDescription(`Crabs will spawn in ${channel}`)
         .setColor(0x00FF00)
         .addFields(
-            { name: 'Crab Frequency', value: 'Every 10 minutes', inline: true },
-            { name: 'Server Prefix', value: serverConfig.prefix, inline: true }
-        )
-        .setFooter({ text: 'Use /help for all commands' });
+            { name: 'Frequency', value: `${serverConfig.frequency} minutes`, inline: true },
+            { name: 'Prefix', value: serverConfig.prefix, inline: true }
+        );
     
     await interaction.reply({ embeds: [embed] });
 }
 
 async function slashPrefix(interaction, options) {
     if (!interaction.memberPermissions.has('Administrator')) {
-        await interaction.reply({ content: '🦀 You need **Administrator** permissions to change the prefix.', ephemeral: true });
+        await interaction.reply({ content: '🦀 Administrator permissions required!', ephemeral: true });
         return;
     }
     
     const newPrefix = options.getString('new_prefix');
-    if (newPrefix.length > 3 || newPrefix.length < 1) {
-        await interaction.reply({ content: '🦀 Prefix must be between 1 and 3 characters long.', ephemeral: true });
+    if (newPrefix.length > 5) {
+        await interaction.reply({ content: '🦀 Prefix must be 5 characters or less!', ephemeral: true });
         return;
     }
     
-    const serverConfig = getServerConfig(interaction.guild.id);
+    const serverConfig = dataHandler.getServerConfig(interaction.guild.id);
     const oldPrefix = serverConfig.prefix;
     serverConfig.prefix = newPrefix;
-    saveServerConfig(interaction.guild.id, serverConfig);
+    dataHandler.saveServerConfig(interaction.guild.id, serverConfig);
     
     const embed = new EmbedBuilder()
         .setTitle('✅ Prefix Updated!')
-        .setDescription(`Server prefix changed from \`${oldPrefix}\` to \`${newPrefix}\``)
-        .setColor(0x00FF00)
-        .addFields({ name: 'Example', value: `Now use \`${newPrefix}crab\` instead of \`${oldPrefix}crab\`` })
-        .setFooter({ text: 'This change only affects this server!' });
+        .setDescription(`Changed from \`${oldPrefix}\` to \`${newPrefix}\``)
+        .setColor(0x00FF00);
+    
+    await interaction.reply({ embeds: [embed] });
+}
+
+async function slashFrequency(interaction, options) {
+    if (!interaction.memberPermissions.has('Administrator')) {
+        await interaction.reply({ content: '🦀 Administrator permissions required!', ephemeral: true });
+        return;
+    }
+    
+    const minutes = options.getInteger('minutes');
+    const serverConfig = dataHandler.getServerConfig(interaction.guild.id);
+    serverConfig.frequency = minutes;
+    dataHandler.saveServerConfig(interaction.guild.id, serverConfig);
+    
+    const embed = new EmbedBuilder()
+        .setTitle('✅ Frequency Updated!')
+        .setDescription(`Crabs will spawn every ${minutes} minutes`)
+        .setColor(0x00FF00);
+    
+    await interaction.reply({ embeds: [embed] });
+}
+
+async function slashClaimMessage(interaction, options) {
+    if (!interaction.memberPermissions.has('Administrator')) {
+        await interaction.reply({ content: '🦀 Administrator permissions required!', ephemeral: true });
+        return;
+    }
+    
+    const message = options.getString('message');
+    const serverConfig = dataHandler.getServerConfig(interaction.guild.id);
+    serverConfig.claimMessage = message;
+    dataHandler.saveServerConfig(interaction.guild.id, serverConfig);
+    
+    const embed = new EmbedBuilder()
+        .setTitle('✅ Claim Message Updated!')
+        .setDescription(`New message: "${message}"`)
+        .setColor(0x00FF00);
+    
+    await interaction.reply({ embeds: [embed] });
+}
+
+async function slashCrabInfo(interaction) {
+    const randomFact = crabFacts[Math.floor(Math.random() * crabFacts.length)];
+    
+    const embed = new EmbedBuilder()
+        .setTitle('🦀 Crab Fact!')
+        .setDescription(randomFact)
+        .setColor(0x4FC3F7);
     
     await interaction.reply({ embeds: [embed] });
 }
@@ -574,7 +515,7 @@ async function slashPrefix(interaction, options) {
 async function slashPing(interaction) {
     const embed = new EmbedBuilder()
         .setTitle('🏓 Pong!')
-        .setDescription(`Latency: ${Date.now() - interaction.createdTimestamp}ms\nAPI Latency: ${Math.round(client.ws.ping)}ms`)
+        .setDescription(`Latency: ${Date.now() - interaction.createdTimestamp}ms\nAPI: ${Math.round(client.ws.ping)}ms`)
         .setColor(0x00FF00);
     
     await interaction.reply({ embeds: [embed] });
@@ -583,57 +524,53 @@ async function slashPing(interaction) {
 async function slashAbout(interaction) {
     const embed = new EmbedBuilder()
         .setTitle('🦀 About Crab Bot')
-        .setDescription('A fun Discord bot where crabs randomly appear and users can catch them to earn coins, level up, and buy items from the shop!')
+        .setDescription('Advanced crab catching bot with server customization!')
         .setColor(0x7289DA)
         .addFields(
             { name: '📊 Servers', value: client.guilds.cache.size.toString(), inline: true },
-            { name: '👥 Users', value: Object.keys(userData).length.toString(), inline: true },
-            { name: '⚡ Version', value: '2.1.0', inline: true },
-            { name: '🎨 Inspiration', value: '[cat-bot](https://github.com/milenakos/cat-bot)', inline: false },
-            { name: '⚖️ License', value: 'AGPL-3.0', inline: false }
-        )
-        .setFooter({ text: 'Made with ❤️ and 🦀' });
+            { name: '⚡ Version', value: '2.2.0', inline: true },
+            { name: '🎨 Features', value: 'Custom prefixes, frequencies, crab collection, and more!', inline: false }
+        );
     
     await interaction.reply({ embeds: [embed] });
 }
 
-// Button interaction handler (keep existing)
+// Button interactions
 async function handleButtonInteraction(interaction) {
     if (interaction.customId.startsWith('catch_')) {
         const crabId = interaction.customId.replace('catch_', '');
-        const crab = activeCrabs.get(crabId);
+        const crab = crabSpawner.getCrab(crabId);
         
         if (!crab) {
-            await interaction.reply({ content: '🦀 This crab has already been caught or disappeared!', ephemeral: true });
+            await interaction.reply({ content: '🦀 Crab already caught!', ephemeral: true });
             return;
         }
         
         if (crab.caught) {
-            await interaction.reply({ content: '🦀 Someone already caught this crab!', ephemeral: true });
+            await interaction.reply({ content: '🦀 Someone got it first!', ephemeral: true });
             return;
         }
         
         crab.caught = true;
-        activeCrabs.delete(crabId);
+        crabSpawner.removeCrab(crabId);
         
-        const coins = crab.value;
-        const xp = Math.floor(Math.random() * 3) + 1;
-        const result = addCatch(interaction.user.id, coins, xp);
+        const serverConfig = dataHandler.getServerConfig(interaction.guild.id);
+        const result = dataHandler.addCatch(interaction.user.id, crab.value, Math.floor(Math.random() * 3) + 1, crab.type);
         
         const embed = new EmbedBuilder()
             .setTitle('🦀 Crab Caught!')
-            .setDescription(`**${interaction.user.displayName}** caught the crab!`)
+            .setDescription(`${interaction.user.displayName} ${serverConfig.claimMessage}`)
             .setColor(0x00FF00)
             .addFields(
-                { name: '🪙 Crab Coins', value: `+${coins}`, inline: true },
-                { name: '⭐ XP', value: `+${xp}`, inline: true },
-                { name: '📊 Total Crabs', value: result.user.totalCaught.toString(), inline: true }
+                { name: '🦀 Type', value: crab.type, inline: true },
+                { name: '⭐ Rarity', value: crab.rarity.toUpperCase(), inline: true },
+                { name: '🪙 Coins', value: `+${crab.value}`, inline: true },
+                { name: '📊 Total', value: result.user.totalCaught.toString(), inline: true },
+                { name: '💎 Collection', value: result.user.crabCollection[crab.type].toString(), inline: true }
             );
         
         if (result.leveledUp) {
-            embed.setFooter({ text: `🎉 Level up! You're now level ${result.user.level}!` });
-        } else {
-            embed.setFooter({ text: `You now have ${result.user.coins} Crab Coins` });
+            embed.setFooter({ text: crabSpawner.getRandomLevelUpMessage(result.user.level) });
         }
         
         const disabledRow = new ActionRowBuilder()
@@ -649,14 +586,8 @@ async function handleButtonInteraction(interaction) {
     }
 }
 
-// Error handling
-client.on('error', console.error);
-process.on('unhandledRejection', console.error);
-
-// Start the bot
-console.log('🦀 Starting Crab Bot...');
-console.log('⚖️ License: AGPL-3.0');
-
+// Start bot
+console.log('🦀 Starting Advanced Crab Bot...');
 client.login(config.token).catch(error => {
     console.error('❌ Failed to login:', error);
     process.exit(1);
