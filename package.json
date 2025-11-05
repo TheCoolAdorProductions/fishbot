@@ -1,11 +1,10 @@
 {
   "name": "crab-bot",
-  "version": "1.0.0",
-  "description": "A complete crab bot functionality with features from cat bot",
+  "version": "2.2.0",
+  "description": "Advanced crab bot with server-specific features",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "discord.js": "^14.14.1"
