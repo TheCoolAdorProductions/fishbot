@@ -1,7 +1,7 @@
 # 🦀 Crab Bot
 
 A Discord bot inspired by [cat-bot](https://github.com/milenakos/cat-bot) but featuring crabs! Catch crabs, earn coins, level up, and compete with friends.
-<div> </div>
+<div> a</div>
 [![DiscordTools Banner](https://img.shields.io/badge/DISCORD-Crab%20Bot-5865f2?style=for-the-badge&logo=discord)](https://discord.com/invite/EsznpytuYT)
 ![License](https://img.shields.io/badge/License-AGPL-blue?style=for-the-badge)
 ![Version](https://img.shields.io/badge/Version-1.3.0-purple?style=for-the-badge)
