@@ -1,4 +1,4 @@
-# 🦀 Crab Bot
+# 🐟 Fish Bot
 
 A Discord bot inspired by [Crab bot](https://github.com/reallytyler/crabbot/) but featuring fish! Catch fish, earn coins, level up, and compete with friends.
 
