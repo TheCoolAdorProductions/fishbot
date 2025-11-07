@@ -1,7 +1,7 @@
 {
-  "name": "crab-bot",
-  "version": "4.0.0",
-  "description": "Crab bot with catch system",
+  "name": "fish-bot",
+  "version": "1.0.0",
+  "description": "Fish bot with catch system",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
