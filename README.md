@@ -1,7 +1,7 @@
 # 🐟 Fish Bot
 
 A Discord bot inspired by [Crab bot](https://github.com/reallytyler/crabbot/) but featuring fish! Catch fish, earn coins, level up, and compete with friends.
-[![Discord](https://img.shields.io/badge/DISCORD-Add%20Fish%20Bot-5865f2?style=for-the-badge&logo=discord&logoColor=white)](Coming Soon)
+[![Discord](https://img.shields.io/badge/DISCORD-Add%20Fish%20Bot-5865f2?style=for-the-badge&logo=discord&logoColor=white)] Coming Soon
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=for-the-badge)](https://github.com/TheCoolAdorProductions/fishbot/blob/main/LICENSE)
 ![Version](https://img.shields.io/badge/Version-4.5.0-purple?style=for-the-badge)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
